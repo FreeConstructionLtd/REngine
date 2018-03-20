@@ -1,4 +1,4 @@
-package org.rosuda.REngine ;
+package org.rosuda.REngine;
 
 /**
  * Exception thrown when an error occurs during eval. 

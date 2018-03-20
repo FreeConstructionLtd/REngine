@@ -1,4 +1,4 @@
-package org.rosuda.REngine ;
+package org.rosuda.REngine;
 
 /**
  * Utility class to wrap an Object into a REXP object. 
