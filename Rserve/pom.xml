@@ -35,6 +35,13 @@
             <version>1.7.5</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.tdomzal</groupId>
+            <artifactId>junit-docker-rule</artifactId>
+            <version>0.3</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
