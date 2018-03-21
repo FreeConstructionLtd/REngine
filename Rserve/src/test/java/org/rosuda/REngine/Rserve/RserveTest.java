@@ -4,9 +4,7 @@ import static org.junit.Assert.*;
 
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.rosuda.REngine.REXP;
@@ -57,6 +55,29 @@ public class RserveTest {
      * Backend agnostic object providing an abstraction to RConnection.
      */
     private REngine engine = null;
+
+    @AfterClass
+    public static void tearDownRserve() {
+        try {
+            // connect so we can control
+            RConnection connection = new RConnection();
+
+            // first use CTRL - it will fail in most cases (sinnce CTRL is likely not enabled)
+            // but is the most reliable
+            try {
+                connection.serverShutdown();
+            } catch (RserveException e1) {
+            }
+            // this will work on older Rserve versions, may not work on new ones
+            try {
+                connection.shutdown();
+            } catch (RserveException e2) {
+            }
+            // finally, close the connection
+            connection.close();
+        } catch (REngineException e3) {
+        } // if this fails, that's ok - nothing to shutdown
+    }
 
     @Before
     public void createConnection() throws RserveException {
@@ -394,29 +415,6 @@ public class RserveTest {
     @After
     public void closeConnection() {
         engine.close();
-    }
-
-    @AfterClass
-    public static void tearDownRserve() {
-        try {
-            // connect so we can control
-            RConnection connection = new RConnection();
-
-            // first use CTRL - it will fail in most cases (sinnce CTRL is likely not enabled)
-            // but is the most reliable
-            try {
-                connection.serverShutdown();
-            } catch (RserveException e1) {
-            }
-            // this will work on older Rserve versions, may not work on new ones
-            try {
-                connection.shutdown();
-            } catch (RserveException e2) {
-            }
-            // finally, close the connection
-            connection.close();
-        } catch (REngineException e3) {
-        } // if this fails, that's ok - nothing to shutdown
     }
 
 }
