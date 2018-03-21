@@ -73,8 +73,8 @@ public class RTalk {
     public static final int ERR_session_busy = 0x50;
     public static final int ERR_detach_failed = 0x51;
 
-    InputStream is;
-    OutputStream os;
+    private InputStream is;
+    private OutputStream os;
 
     /** constructor; parameters specify the streams
      @param sis socket input stream
@@ -99,12 +99,14 @@ public class RTalk {
         buf[o] = (byte) ((v & 0xff000000) >> 24);
     }
 
-    /** writes cmd/resp/type byte + 3/7 bytes len into a byte buffer at specified offset.
-     @param ty type/cmd/resp byte
-     @param len length
-     @param buf buffer
-     @param o offset
-     @return offset in buf just after the header. Please note that since Rserve 0.3 the header can be either 4 or 8 bytes long, depending on the len parameter.
+    /**
+     * Writes cmd/resp/type byte + 3/7 bytes len into a byte buffer at specified offset.
+     * @param ty type/cmd/resp byte
+     * @param len length
+     * @param buf buffer
+     * @param o offset
+     * @return offset in buf just after the header. Please note that since Rserve 0.3 the header can be either
+     * 4 or 8 bytes long, depending on the len parameter.
      */
     public static int setHdr(int ty, int len, byte[] buf, int o) {
         buf[o] = (byte) ((ty & 255) | ((len > 0xfffff0) ? DT_LARGE : 0));
@@ -192,13 +194,18 @@ public class RTalk {
         return request(cmd, null, cont, 0, (cont == null) ? 0 : cont.length);
     }
 
-    /** sends a request with attached prefix and  parameters. Both prefix and cont can be <code>null</code>. Effectively <code>request(a,b,null)</code> and <code>request(a,null,b)</code> are equivalent.
-     @param cmd command - a special command of -1 prevents request from sending anything
-     @param prefix - this content is sent *before* cont. It is provided to save memory copy operations where a small header precedes a large data chunk (usually prefix conatins the parameter header and cont contains the actual data).
-     @param cont contents
-     @param offset offset in cont where to start sending (if <0 then 0 is assumed, if >cont.length then no cont is sent)
-     @param len number of bytes in cont to send (it is clipped to the length of cont if necessary)
-     @return returned packet or <code>null</code> if something went wrong */
+    /**
+     * Sends a request with attached prefix and  parameters. Both prefix and cont can be <code>null</code>. Effectively
+     * <code>request(a,b,null)</code> and <code>request(a,null,b)</code> are equivalent.
+     * @param cmd command - a special command of -1 prevents request from sending anything
+     * @param prefix - this content is sent *before* cont. It is provided to save memory copy operations where a small
+     *               header precedes a large data chunk (usually prefix conatins the parameter header and cont contains
+     *               the actual data).
+     * @param cont contents
+     * @param offset offset in cont where to start sending (if <0 then 0 is assumed, if >cont.length then no cont is sent)
+     * @param len number of bytes in cont to send (it is clipped to the length of cont if necessary)
+     * @return returned packet or <code>null</code> if something went wrong
+     */
     public RPacket request(int cmd, byte[] prefix, byte[] cont, int offset, int len) {
         if (cont != null) {
             if (offset >= cont.length) {
@@ -277,7 +284,6 @@ public class RTalk {
                 rq[i + 4] = 0;
                 i++;
             }
-            ;
             setHdr(DT_STRING, sl, rq, 0);
             return request(cmd, rq);
         } catch (Exception e) {
@@ -298,7 +304,6 @@ public class RTalk {
             return request(cmd, rq);
         } catch (Exception e) {
         }
-        ;
         return null;
     }
 }

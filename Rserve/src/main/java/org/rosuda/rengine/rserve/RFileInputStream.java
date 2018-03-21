@@ -11,16 +11,18 @@ import java.io.InputStream;
 import org.rosuda.rengine.rserve.protocol.RPacket;
 import org.rosuda.rengine.rserve.protocol.RTalk;
 
-/** <b>RFileInputStream</b> is an {@link InputStream} to transfer files
- from <b>Rserve</b> server to the client. It is used very much like
- a {@link FileInputStream}. Currently mark and seek is not supported.
- The current implementation is also "one-shot" only, that means the file
- can be read only once.
- @version $Id$
+/**
+ * <b>RFileInputStream</b> is an {@link InputStream} to transfer files
+ * from <b>Rserve</b> server to the client. It is used very much like
+ * a {@link FileInputStream}. Currently mark and seek is not supported.
+ * The current implementation is also "one-shot" only, that means the file
+ * can be read only once.
+ * @version $Id$
  */
 public class RFileInputStream extends InputStream {
     /** RTalk class to use for communication with the Rserve */
     RTalk rt;
+   
     /** set to <code>true</code> when {@link #close} was called.
      Any subsequent read requests on closed stream  result in an
      {@link IOException} or error result */
@@ -82,13 +84,11 @@ public class RFileInputStream extends InputStream {
             eof = true;
             return -1;
         }
-        ;
         int i = 0;
         while (i < rd.length) {
             b[off + i] = rd[i];
             i++;
         }
-        ;
         return rd.length;
     }
 

@@ -21,7 +21,7 @@ public class RSession implements java.io.Serializable {
     }
 
     RSession(RConnection c, RPacket p) throws RserveException {
-        this.host = c.host;
+        this.host = c.getHost();
         this.rsrvVersion = c.rsrvVersion;
         byte[] ct = p.getCont();
         if (ct == null || ct.length != 32 + 3 * 4) {
@@ -35,7 +35,7 @@ public class RSession implements java.io.Serializable {
     /** attach/resume this session */
     public RConnection attach() throws RserveException {
         RConnection c = new RConnection(this);
-        attachPacket = c.rt.request(-1);
+        attachPacket = c.getRTalk().request(-1);
         return c;
     }
 }

@@ -125,7 +125,6 @@ public class StartRserve {
                 Thread.sleep(500);
             } catch (InterruptedException ix) {
             }
-            ;
             attempts--;
         }
         return false;
@@ -200,6 +199,5 @@ public class StartRserve {
             c.shutdown();
         } catch (Exception x) {
         }
-        ;
     }
 }

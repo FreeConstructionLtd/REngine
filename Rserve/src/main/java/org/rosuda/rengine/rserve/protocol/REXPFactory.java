@@ -51,7 +51,10 @@ public class REXPFactory {
     public static final int XT_VECTOR = 16;
     /** xpression type: dotted-pair list (RList) */
     public static final int XT_LIST = 17;
-    /** xpression type: closure (there is no java class for that type (yet?). currently the body of the closure is stored in the content part of the REXP. Please note that this may change in the future!) */
+    /**
+     * xpression type: closure (there is no java class for that type (yet?). currently the body of the closure is stored in
+     * the content part of the REXP. Please note that this may change in the future!)
+     */
     public static final int XT_CLOS = 18;
     /** xpression type: symbol name
      @since Rserve 0.5 */
@@ -91,7 +94,9 @@ public class REXPFactory {
     /** xpression type: unknown; no assumptions can be made about the content */
     public static final int XT_UNKNOWN = 48;
 
-    /** xpression type: RFactor; this XT is internally generated (ergo is does not come from Rsrv.h) to support RFactor class which is built from XT_ARRAY_INT */
+    /**
+     * xpression type: RFactor; this XT is internally generated (ergo is does not come from Rsrv.h) to support RFactor class
+     * which is built from XT_ARRAY_INT */
     public static final int XT_FACTOR = 127;
 
     /** used for transport only - has attribute */
@@ -254,16 +259,19 @@ public class REXPFactory {
 
     public REXPList getAttr() { return (attr == null) ? null : (REXPList) attr.cont; }
 
-    /** parses byte buffer for binary representation of xpressions - read one xpression slot (descends recursively for aggregated xpressions such as lists, vectors etc.)
-     @param buf buffer containing the binary representation
-     @param o offset in the buffer to start at
-     @return position just behind the parsed xpression. Can be use for successive calls to {@link #parseREXP} if more than one expression is stored in the binary array. */
+    /**
+     * Parses byte buffer for binary representation of xpressions - read one xpression slot (descends recursively for aggregated
+     * xpressions such as lists, vectors etc.)
+     * @param buf buffer containing the binary representation
+     * @param o offset in the buffer to start at
+     * @return position just behind the parsed xpression. Can be use for successive calls to {@link #parseREXP} if more than one
+     * expression is stored in the binary array.
+     */
     public int parseREXP(byte[] buf, int o) throws REXPMismatchException {
         int xl = RTalk.getLen(buf, o);
         boolean hasAtt = ((buf[o] & 128) != 0);
         boolean isLong = ((buf[o] & 64) != 0);
-        int xt = (int) (buf[o] & 63);
-        //System.out.println("parseREXP: type="+xt+", len="+xl+", hasAtt="+hasAtt+", isLong="+isLong);
+        int xt = buf[o] & 63;
         if (isLong) {
             o += 4;
         }
@@ -428,7 +436,8 @@ public class REXPFactory {
             }
             return o;
         }
-        if (xt == XT_LIST || xt == XT_LANG) { //old-style lists, for comaptibility with older Rserve versions - rather inefficient since we have to convert the recusively stored structures into a flat structure
+        if (xt == XT_LIST || xt == XT_LANG) { //old-style lists, for comaptibility with older Rserve versions - rather inefficient
+            // since we have to convert the recusively stored structures into a flat structure
             boolean isRoot = false;
             if (rootList == null) {
                 rootList = new RList();
@@ -508,7 +517,8 @@ public class REXPFactory {
                 while (o < eox) {
                     if (buf[o] == 0) {
                         try {
-                            if (buf[i] == -1) { /* if the first byte is 0xff (-1 in signed char) then it either needs to be skipped (doubling) or there is an NA value */
+                            if (buf[i] == -1) { /* if the first byte is 0xff (-1 in signed char) then it either needs to be skipped
+                            (doubling) or there is an NA value */
                                 if (buf[i + 1] == 0) {
                                     s[c] = null; /* NA */
                                 } else {
@@ -609,8 +619,11 @@ public class REXPFactory {
         return o;
     }
 
-    /** Calculates the length of the binary representation of the REXP including all headers. This is the amount of memory necessary to store the REXP via {@link #getBinaryRepresentation}.
-     <p>Please note that currently only XT_[ARRAY_]INT, XT_[ARRAY_]DOUBLE and XT_[ARRAY_]STR are supported! All other types will return 4 which is the size of the header.
+    /**
+     * Calculates the length of the binary representation of the REXP including all headers. This is the amount of memory
+     * necessary to store the REXP via {@link #getBinaryRepresentation}.
+     * <p>Please note that currently only XT_[ARRAY_]INT, XT_[ARRAY_]DOUBLE and XT_[ARRAY_]STR are supported! All other
+     * types will return 4 which is the size of the header.
      @return length of the REXP including headers (4 or 8 bytes)*/
     public int getBinaryLength() throws REXPMismatchException {
         int l = 0;
@@ -742,11 +755,15 @@ public class REXPFactory {
         return l + 4; // add the header
     }
 
-    /** Stores the REXP in its binary (ready-to-send) representation including header into a buffer and returns the index of the byte behind the REXP.
-     <p>Please note that currently only XT_[ARRAY_]INT, XT_[ARRAY_]DOUBLE and XT_[ARRAY_]STR are supported! All other types will be stored as SEXP of the length 0 without any contents.
-     @param buf buffer to store the REXP binary into
-     @param off offset of the first byte where to store the REXP
-     @return the offset of the first byte behind the stored REXP */
+    /**
+     * Stores the REXP in its binary (ready-to-send) representation including header into a buffer and returns the index of
+     * the byte behind the REXP.
+     * <p>Please note that currently only XT_[ARRAY_]INT, XT_[ARRAY_]DOUBLE and XT_[ARRAY_]STR are supported! All other types
+     * will be stored as SEXP of the length 0 without any contents.
+     * @param buf buffer to store the REXP binary into
+     * @param off offset of the first byte where to store the REXP
+     * @return the offset of the first byte behind the stored REXP
+     */
     public int getBinaryRepresentation(byte[] buf, int off) throws REXPMismatchException {
         int myl = getBinaryLength();
         boolean isLarge = (myl > 0xfffff0);
@@ -830,7 +847,8 @@ public class REXPFactory {
                         try {
                             byte b[] = sa[i].getBytes(RConnection.transferCharset);
                             if (b.length > 0) {
-                                if (b[0] == -1) /* if the first entry happens to be -1 then we need to double it so it doesn't get confused with NAs */ {
+                                if (b[0] == -1) {
+                                    /* if the first entry happens to be -1 then we need to double it so it doesn't get confused with NAs */
                                     buf[io++] = -1;
                                 }
                                 System.arraycopy(b, 0, buf, io, b.length);
