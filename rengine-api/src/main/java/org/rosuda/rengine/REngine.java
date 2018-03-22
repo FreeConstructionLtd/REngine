@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
  The canonical way of obtaining a new engine is to call {@link #engineForClass}. All subclasses must implement <code>createEngine()</code> method. */
 public abstract class REngine {
     /** last created engine or <code>null</code> if there is none */
-    protected static REngine lastEngine = null;
+    private static REngine lastEngine = null;
 
     /** this is the designated constructor for REngine classes. It uses reflection to call createEngine method on the given REngine class.
      @param klass fully qualified class-name of a REngine implementation
@@ -34,8 +34,8 @@ public abstract class REngine {
         if (cl == null) {
             throw new ClassNotFoundException("can't find engine class " + klass);
         }
-        Method m = cl.getMethod("createEngine", new Class[] {String[].class, REngineCallbacks.class, Boolean.TYPE});
-        Object o = m.invoke(null, new Object[] {args, callbacks, new Boolean(runREPL)});
+        Method m = cl.getMethod("createEngine", String[].class, REngineCallbacks.class, Boolean.TYPE);
+        Object o = m.invoke(null, args, callbacks, new Boolean(runREPL));
         return lastEngine = (REngine) o;
     }
 
@@ -111,8 +111,6 @@ public abstract class REngine {
      @param cmd expression to parse (see {@link #parse})
      @return result */
     public REXP parseAndEval(String cmd) throws REngineException, REXPMismatchException { return parseAndEval(cmd, null, true); }
-
-    ;
 
     /** performs a close operation on engines that support it. The engine may not be used after <code>close()</code> returned <code>true</code>. This operation is optional and will always return <code>false</code> if not implemented.
      @return <code>true</code> if the close opetaion was successful, <code>false</code> otherwise. */

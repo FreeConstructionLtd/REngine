@@ -3,7 +3,7 @@ package org.rosuda.rengine;
 /** Represents a pairlist in R. Unlike the actual internal R implementation this one
  does not use CAR/CDR/TAG linked representation but a @link{RList} object. */
 public class REXPList extends REXPVector {
-    private RList payload;
+    private final RList payload;
 
     /* create a new pairlist with the contents of a named R list and no attributes.
        @param list named list with the contents */

@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.rosuda.rengine.rserve.protocol.RConnectionException;
 import org.rosuda.rengine.rserve.protocol.RPacket;
 import org.rosuda.rengine.rserve.protocol.RTalk;
 
@@ -28,7 +29,7 @@ import org.rosuda.rengine.rserve.protocol.RTalk;
 public class RFileOutputStream extends OutputStream {
     /**
      * RTalk class to use for communication with the Rserve */
-    private RTalk rt;
+    private final RTalk rt;
 
     /**
      * Set to <code>true</code> when {@link #close} was called.
@@ -50,9 +51,14 @@ public class RFileOutputStream extends OutputStream {
      */
     RFileOutputStream(RTalk rti, String fn) throws IOException {
         rt = rti;
-        RPacket rp = rt.request(RTalk.CMD_createFile, fn);
-        if (rp == null || !rp.isOk()) {
-            throw new IOException((rp == null) ? "Connection to Rserve failed" : ("Request return code: " + rp.getStat()));
+        try {
+            RPacket rp = rt.request(RTalk.CMD_createFile, fn);
+            if (rp == null || !rp.isOk()) {
+                throw new IOException((rp == null) ? RFileStreamUtils.CONNECTION_TO_RSERVE_FAILED_ERROR_MESSAGE
+                                                   : ("Request return code: " + rp.getStat()));
+            }
+        } catch (RConnectionException e) {
+            throw new IOException(RFileStreamUtils.CONNECTION_TO_RSERVE_FAILED_ERROR_MESSAGE, e);
         }
         closed = false;
     }
@@ -92,9 +98,14 @@ public class RFileOutputStream extends OutputStream {
             len = 0;
         }
         byte[] hdr = RTalk.newHdr(RTalk.DT_BYTESTREAM, len);
-        RPacket rp = rt.request(RTalk.CMD_writeFile, hdr, b, off, len);
-        if (rp == null || !rp.isOk()) {
-            throw new IOException((rp == null) ? "Connection to Rserve failed" : ("Request return code: " + rp.getStat()));
+        try {
+            RPacket rp = rt.request(RTalk.CMD_writeFile, hdr, b, off, len);
+            if (rp == null || !rp.isOk()) {
+                throw new IOException((rp == null) ? RFileStreamUtils.CONNECTION_TO_RSERVE_FAILED_ERROR_MESSAGE
+                                                   : ("Request return code: " + rp.getStat()));
+            }
+        } catch (RConnectionException e) {
+            throw new IOException(RFileStreamUtils.CONNECTION_TO_RSERVE_FAILED_ERROR_MESSAGE, e);
         }
     }
 
@@ -103,10 +114,7 @@ public class RFileOutputStream extends OutputStream {
      * close does not close the RConnection.
      */
     public void close() throws IOException {
-        RPacket rp = rt.request(RTalk.CMD_closeFile, (byte[]) null);
-        if (rp == null || !rp.isOk()) {
-            throw new IOException((rp == null) ? "Connection to Rserve failed" : ("Request return code: " + rp.getStat()));
-        }
+        RFileStreamUtils.close(rt);
         closed = true;
     }
 

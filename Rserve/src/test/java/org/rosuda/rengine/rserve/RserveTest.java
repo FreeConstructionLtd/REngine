@@ -2,8 +2,17 @@ package org.rosuda.rengine.rserve;
 
 import static org.junit.Assert.*;
 
+import java.awt.Canvas;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.GraphicsEnvironment;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.awt.Toolkit;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,9 +30,8 @@ import org.rosuda.rengine.REngine;
 import org.rosuda.rengine.REngineException;
 import org.rosuda.rengine.RFactor;
 import org.rosuda.rengine.RList;
+import org.rosuda.rengine.rserve.protocol.RConnectionException;
 import org.rosuda.rengine.rserve.protocol.RTalk;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import pl.domzal.junit.docker.rule.DockerRule;
 import pl.domzal.junit.docker.rule.WaitFor;
@@ -37,7 +45,6 @@ public class RserveTest {
     /**
      * Provides some detailed output on test execution.
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(RserveTest.class);
     private static final String RSERVE_PORT = "6311";
 
     @Rule
@@ -56,31 +63,8 @@ public class RserveTest {
      */
     private REngine engine = null;
 
-    @AfterClass
-    public static void tearDownRserve() {
-        try {
-            // connect so we can control
-            RConnection connection = new RConnection();
-
-            // first use CTRL - it will fail in most cases (sinnce CTRL is likely not enabled)
-            // but is the most reliable
-            try {
-                connection.serverShutdown();
-            } catch (RserveException e1) {
-            }
-            // this will work on older Rserve versions, may not work on new ones
-            try {
-                connection.shutdown();
-            } catch (RserveException e2) {
-            }
-            // finally, close the connection
-            connection.close();
-        } catch (REngineException e3) {
-        } // if this fails, that's ok - nothing to shutdown
-    }
-
     @Before
-    public void createConnection() throws RserveException {
+    public void createConnection() throws RserveException, RConnectionException {
         connection = new RConnection(container.getDockerHost(), Integer.parseInt(container.getExposedContainerPort(RSERVE_PORT)));
         connection.login("rserve", "rserve");
         engine = connection;
@@ -88,16 +72,20 @@ public class RserveTest {
 
     @Test
     public void versionStringTest() throws RserveException, REXPMismatchException {
+        // when
         final String versionString = connection.eval("R.version$version.string").asString();
-        LOGGER.debug(versionString);
+
+        // then
         assertNotNull(versionString);
         assertTrue(versionString.contains("R version"));
     }
 
     @Test
     public void stringAndListRetrievalTest() throws RserveException, REXPMismatchException {
+        // when
         final RList list = connection.eval("{d=data.frame(\"huhu\",c(11:20)); lapply(d,as.character)}").asList();
-        LOGGER.debug(list.toString());
+
+        // then
         assertNotNull(list);
         for (Object object : list) {
             if (object instanceof REXPString) {
@@ -165,7 +153,7 @@ public class RserveTest {
     }
 
     @Test
-    public void assignListsAndVectorsTest() throws RserveException, REXPMismatchException, REngineException {
+    public void assignListsAndVectorsTest() throws REXPMismatchException, REngineException {
         // Initialize REXP container
         final REXPInteger rexpInteger = new REXPInteger(new int[] {0, 1, 2, 3});
         final REXPDouble rexpDouble = new REXPDouble(new double[] {0.5, 1.2, 2.3, 3.0});
@@ -201,13 +189,12 @@ public class RserveTest {
                 assertEquals(rexpInteger.asIntegers()[i], a.asIntegers()[i]);
             }
         } catch (ClassCastException exception) {
-            LOGGER.error(exception.getMessage());
             fail("Could not cast object to the required type.");
         }
     }
 
     @Test
-    public void logicalsSupportTest() throws RserveException, REngineException, REXPMismatchException {
+    public void logicalsSupportTest() throws REngineException, REXPMismatchException {
         final REXPLogical rexpLogical = new REXPLogical(new boolean[] {true, false, true});
         connection.assign("b", rexpLogical);
 
@@ -221,7 +208,6 @@ public class RserveTest {
             assertFalse(result[1]);
             assertTrue(result[2]);
         } catch (ClassCastException exception) {
-            LOGGER.error(exception.getMessage());
             fail("Could not cast REXP to REPLogical.");
         }
 
@@ -297,7 +283,7 @@ public class RserveTest {
     }
 
     @Test
-    public void lowessTest() throws RserveException, REXPMismatchException, REngineException {
+    public void lowessTest() throws REXPMismatchException, REngineException {
         final double x[] = connection.eval("rnorm(100)").asDoubles();
         final double y[] = connection.eval("rnorm(100)").asDoubles();
         connection.assign("x", x);
@@ -387,7 +373,7 @@ public class RserveTest {
     }
 
     @Test
-    public void encodingSupportTest() throws RserveException, REngineException, REXPMismatchException {
+    public void encodingSupportTest() throws REngineException, REXPMismatchException {
         // hiragana (literally, in hiragana ;))
         final String testString = "ひらがな";
         connection.setStringEncoding("utf8");
@@ -400,7 +386,7 @@ public class RserveTest {
     }
 
     @Test(expected = RserveException.class)
-    public void controlCommandTest() throws RserveException, REXPMismatchException {
+    public void controlCommandTest() throws RserveException, RConnectionException {
         final String key = "rn" + Math.random();
         boolean hasCtrl = true;
         try {
@@ -412,9 +398,67 @@ public class RserveTest {
         }
     }
 
+    @Test
+    public void plotTest() throws REXPMismatchException, REngineException, InterruptedException {
+        if (GraphicsEnvironment.isHeadless()) { // skip test on headless environments
+            return;
+        }
+        String device = "jpeg"; // device we'll call (this would work with pretty much any bitmap device)
+
+        // if Cairo is installed, we can get much nicer graphics, so try to load it
+        if (connection.parseAndEval("suppressWarnings(require('Cairo',quietly=TRUE))").asInteger() > 0) {
+            device = "CairoJPEG"; // great, we can use Cairo device
+        } // consider installing Cairo package for better bitmap output
+
+
+        // we are careful here - not all R binaries support jpeg
+        // so we rather capture any failures
+        REXP xp = connection.parseAndEval("try(" + device + "('test.jpg',quality=90))");
+
+        if (xp.inherits("try-error")) { // if the result is of the class try-error then there was a problem
+            // this is analogous to 'warnings', but for us it's sufficient to get just the 1st warning
+            REXP w = connection.eval("if (exists('last.warning') && length(last.warning)>0) names(last.warning)[1] else 0");
+            String warning = "";
+            if (w.isString()) {
+                warning = w.asString();
+            }
+            throw new RuntimeException("Can't open " + device + " graphics device:\n" + xp.asString() + "\n" + warning);
+        }
+
+        // ok, so the device should be fine - let's plot - replace this by any plotting code you desire ...
+        connection.parseAndEval("data(iris); attach(iris); plot(Sepal.Length, Petal.Length, col=unclass(Species)); dev.off()");
+
+        // There is no I/O API in REngine because it's actually more efficient to use R for this
+        // we limit the file size to 1MB which should be sufficient and we delete the file as well
+        xp = connection.parseAndEval("r=readBin('test.jpg','raw',1024*1024); unlink('test.jpg'); r");
+
+        // now this is pretty boring AWT stuff - create an image from the data and display it ...
+        final Image img = Toolkit.getDefaultToolkit().createImage(xp.asBytes());
+
+        final Frame frame = new Frame("Test image");
+        Canvas canvas = new Canvas() {
+            public void paint(Graphics graphics) {
+                graphics.drawImage(img, 0, 0, null);
+            }
+        };
+        plotDemo(canvas, img);
+        frame.add(canvas);
+        frame.addWindowListener(new WindowAdapter() { // just so we can close the window
+            public void windowClosing(WindowEvent e) { frame.setVisible(false); }
+        });
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    private void plotDemo(Canvas canvas, Image img) throws InterruptedException {
+        MediaTracker mediaTracker = new MediaTracker(canvas);
+        mediaTracker.addImage(img, 0);
+        mediaTracker.waitForID(0);
+        canvas.setSize(img.getWidth(null), img.getHeight(null));
+    }
+
     @After
     public void closeConnection() {
         engine.close();
     }
-
 }

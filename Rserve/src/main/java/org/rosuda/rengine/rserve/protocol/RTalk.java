@@ -4,8 +4,10 @@ package org.rosuda.rengine.rserve.protocol;
 // Copyright (C) 2004 Simon Urbanek
 // --- for licensing information see LICENSE file in the original JRclient distribution ---
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 
 import org.rosuda.rengine.rserve.RConnection;
 
@@ -73,8 +75,8 @@ public class RTalk {
     public static final int ERR_session_busy = 0x50;
     public static final int ERR_detach_failed = 0x51;
 
-    private InputStream is;
-    private OutputStream os;
+    private final InputStream is;
+    private final OutputStream os;
 
     /** constructor; parameters specify the streams
      @param sis socket input stream
@@ -86,17 +88,17 @@ public class RTalk {
     }
 
     /** writes bit-wise int to a byte buffer at specified position in Intel-endian form
-     @param v value to be written
+     @param value value to be written
      @param buf buffer
-     @param o offset in the buffer to start at. An int takes always 4 bytes */
-    public static void setInt(int v, byte[] buf, int o) {
-        buf[o] = (byte) (v & 255);
-        o++;
-        buf[o] = (byte) ((v & 0xff00) >> 8);
-        o++;
-        buf[o] = (byte) ((v & 0xff0000) >> 16);
-        o++;
-        buf[o] = (byte) ((v & 0xff000000) >> 24);
+     @param offset offset in the buffer to start at. An int takes always 4 bytes */
+    public static void setInt(int value, byte[] buf, int offset) {
+        buf[offset] = (byte) (value & 255);
+        offset++;
+        buf[offset] = (byte) ((value & 0xff00) >> 8);
+        offset++;
+        buf[offset] = (byte) ((value & 0xff0000) >> 16);
+        offset++;
+        buf[offset] = (byte) ((value & 0xff000000) >> 24);
     }
 
     /**
@@ -104,30 +106,30 @@ public class RTalk {
      * @param ty type/cmd/resp byte
      * @param len length
      * @param buf buffer
-     * @param o offset
+     * @param offset offset
      * @return offset in buf just after the header. Please note that since Rserve 0.3 the header can be either
      * 4 or 8 bytes long, depending on the len parameter.
      */
-    public static int setHdr(int ty, int len, byte[] buf, int o) {
-        buf[o] = (byte) ((ty & 255) | ((len > 0xfffff0) ? DT_LARGE : 0));
-        o++;
-        buf[o] = (byte) (len & 255);
-        o++;
-        buf[o] = (byte) ((len & 0xff00) >> 8);
-        o++;
-        buf[o] = (byte) ((len & 0xff0000) >> 16);
-        o++;
+    public static int setHdr(int ty, int len, byte[] buf, int offset) {
+        buf[offset] = (byte) ((ty & 255) | ((len > 0xfffff0) ? DT_LARGE : 0));
+        offset++;
+        buf[offset] = (byte) (len & 255);
+        offset++;
+        buf[offset] = (byte) ((len & 0xff00) >> 8);
+        offset++;
+        buf[offset] = (byte) ((len & 0xff0000) >> 16);
+        offset++;
         if (len > 0xfffff0) { // for large data we need to set the next 4 bytes as well
-            buf[o] = (byte) ((len & 0xff000000) >> 24);
-            o++;
-            buf[o] = 0;
-            o++; // since len is int, we get 32-bits only
-            buf[o] = 0;
-            o++;
-            buf[o] = 0;
-            o++;
+            buf[offset] = (byte) ((len & 0xff000000) >> 24);
+            offset++;
+            buf[offset] = 0;
+            offset++; // since len is int, we get 32-bits only
+            buf[offset] = 0;
+            offset++;
+            buf[offset] = 0;
+            offset++;
         }
-        return o;
+        return offset;
     }
 
     /** creates a new header according to the type and length of the parameter
@@ -141,47 +143,47 @@ public class RTalk {
 
     /** converts bit-wise stored int in Intel-endian form into Java int
      @param buf buffer containg the representation
-     @param o offset where to start (4 bytes will be used)
+     @param offset offset where to start (4 bytes will be used)
      @return the int value. no bounds checking is done so you need to
      make sure that the buffer is big enough */
-    public static int getInt(byte[] buf, int o) {
-        return ((buf[o] & 255) | ((buf[o + 1] & 255) << 8) | ((buf[o + 2] & 255) << 16) | ((buf[o + 3] & 255) << 24));
+    public static int getInt(byte[] buf, int offset) {
+        return ((buf[offset] & 255) | ((buf[offset + 1] & 255) << 8) | ((buf[offset + 2] & 255) << 16) | ((buf[offset + 3] & 255) << 24));
     }
 
     /** converts bit-wise stored length from a header. "long" format is supported up to 32-bit
      @param buf buffer
-     @param o offset of the header (length is at o+1)
+     @param offset offset of the header (length is at offset+1)
      @return length */
-    public static int getLen(byte[] buf, int o) {
+    public static int getLen(byte[] buf, int offset) {
 
         return
-                ((buf[o] & 64) > 0) ? // "long" format; still - we support 32-bit only
-                ((buf[o + 1] & 255) | ((buf[o + 2] & 255) << 8) | ((buf[o + 3] & 255) << 16) | ((buf[o + 4] & 255) << 24))
-                                    :
-                ((buf[o + 1] & 255) | ((buf[o + 2] & 255) << 8) | ((buf[o + 3] & 255) << 16));
+                ((buf[offset] & 64) > 0) ? // "long" format; still - we support 32-bit only
+                ((buf[offset + 1] & 255) | ((buf[offset + 2] & 255) << 8) | ((buf[offset + 3] & 255) << 16) | ((buf[offset + 4] & 255) << 24))
+                                         :
+                ((buf[offset + 1] & 255) | ((buf[offset + 2] & 255) << 8) | ((buf[offset + 3] & 255) << 16));
     }
 
     /** converts bit-wise Intel-endian format into long
      @param buf buffer
-     @param o offset (8 bytes will be used)
+     @param offset offset (8 bytes will be used)
      @return long value */
-    public static long getLong(byte[] buf, int o) {
-        long low = ((long) getInt(buf, o)) & 0xffffffffL;
-        long hi = ((long) getInt(buf, o + 4)) & 0xffffffffL;
+    public static long getLong(byte[] buf, int offset) {
+        long low = ((long) getInt(buf, offset)) & 0xffffffffL;
+        long hi = ((long) getInt(buf, offset + 4)) & 0xffffffffL;
         hi <<= 32;
         hi |= low;
         return hi;
     }
 
-    public static void setLong(long l, byte[] buf, int o) {
-        setInt((int) (l & 0xffffffffL), buf, o);
-        setInt((int) (l >> 32), buf, o + 4);
+    public static void setLong(long l, byte[] buf, int offset) {
+        setInt((int) (l & 0xffffffffL), buf, offset);
+        setInt((int) (l >> 32), buf, offset + 4);
     }
 
     /** sends a request with no attached parameters
      @param cmd command
      @return returned packet or <code>null</code> if something went wrong */
-    public RPacket request(int cmd) {
+    public RPacket request(int cmd) throws RConnectionException {
         byte[] d = new byte[0];
         return request(cmd, d);
     }
@@ -190,7 +192,7 @@ public class RTalk {
      @param cmd command
      @param cont contents - parameters
      @return returned packet or <code>null</code> if something went wrong */
-    public RPacket request(int cmd, byte[] cont) {
+    public RPacket request(int cmd, byte[] cont) throws RConnectionException {
         return request(cmd, null, cont, 0, (cont == null) ? 0 : cont.length);
     }
 
@@ -206,7 +208,7 @@ public class RTalk {
      * @param len number of bytes in cont to send (it is clipped to the length of cont if necessary)
      * @return returned packet or <code>null</code> if something went wrong
      */
-    public RPacket request(int cmd, byte[] prefix, byte[] cont, int offset, int len) {
+    public RPacket request(int cmd, byte[] prefix, byte[] cont, int offset, int len) throws RConnectionException {
         if (cont != null) {
             if (offset >= cont.length) {
                 cont = null;
@@ -244,7 +246,7 @@ public class RTalk {
 
             byte[] ih = new byte[16];
             if (is.read(ih) != 16) {
-                return null;
+                throw new RConnectionException("EOF reached");
             }
             int rep = getInt(ih, 0);
             int rl = getInt(ih, 4);
@@ -258,9 +260,8 @@ public class RTalk {
                 return new RPacket(rep, ct);
             }
             return new RPacket(rep, null);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+        } catch (IOException e) {
+            throw new RConnectionException(e);
         }
     }
 
@@ -268,42 +269,38 @@ public class RTalk {
      @param cmd command
      @param par parameter - length and DT_STRING will be prepended
      @return returned packet or <code>null</code> if something went wrong */
-    public RPacket request(int cmd, String par) {
+    public RPacket request(int cmd, String par) throws RConnectionException {
+        byte[] b;
         try {
-            byte[] b = par.getBytes(RConnection.transferCharset);
-            int sl = b.length + 1;
-            if ((sl & 3) > 0) {
-                sl = (sl & 0xfffffc) + 4; // make sure the length is divisible by 4
-            }
-            byte[] rq = new byte[sl + 5];
-            int i;
-            for (i = 0; i < b.length; i++) {
-                rq[i + 4] = b[i];
-            }
-            while (i < sl) { // pad with 0
-                rq[i + 4] = 0;
-                i++;
-            }
-            setHdr(DT_STRING, sl, rq, 0);
-            return request(cmd, rq);
-        } catch (Exception e) {
-            e.printStackTrace();
+            b = par.getBytes(RConnection.transferCharset);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
         }
-        return null;
+        int sl = b.length + 1;
+        if ((sl & 3) > 0) {
+            sl = (sl & 0xfffffc) + 4; // make sure the length is divisible by 4
+        }
+        byte[] rq = new byte[sl + 5];
+        int i;
+        for (i = 0; i < b.length; i++) {
+            rq[i + 4] = b[i];
+        }
+        while (i < sl) { // pad with 0
+            rq[i + 4] = 0;
+            i++;
+        }
+        setHdr(DT_STRING, sl, rq, 0);
+        return request(cmd, rq);
     }
 
     /** sends a request with one string parameter attached
      @param cmd command
      @param par parameter of the type DT_INT
      @return returned packet or <code>null</code> if something went wrong */
-    public RPacket request(int cmd, int par) {
-        try {
-            byte[] rq = new byte[8];
-            setInt(par, rq, 4);
-            setHdr(DT_INT, 4, rq, 0);
-            return request(cmd, rq);
-        } catch (Exception e) {
-        }
-        return null;
+    public RPacket request(int cmd, int par) throws RConnectionException {
+        byte[] rq = new byte[8];
+        setInt(par, rq, 4);
+        setHdr(DT_INT, 4, rq, 0);
+        return request(cmd, rq);
     }
 }

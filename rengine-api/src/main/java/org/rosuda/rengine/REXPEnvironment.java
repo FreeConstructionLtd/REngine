@@ -5,9 +5,9 @@ package org.rosuda.rengine;
  */
 public class REXPEnvironment extends REXP {
     /** engine associated with this environment */
-    REngine eng;
+    private final REngine eng;
     /** transparent handle that can be used by the engine to indentify the environment. It is not used by REngine API itself. */
-    Object handle;
+    private final Object handle;
 
     /** create a new environemnt reference - this constructor should never be used directly, use {@link REngine.newEnvironment()} instead.
      *  @param eng engine responsible for this environment

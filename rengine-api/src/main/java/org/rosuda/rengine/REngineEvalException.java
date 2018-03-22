@@ -25,7 +25,7 @@ public class REngineEvalException extends REngineException {
     /**
      * Type of eval error
      */
-    protected int type;
+    private final int type;
 
     /**
      * Constructor
@@ -34,7 +34,7 @@ public class REngineEvalException extends REngineException {
      * @param message error message
      * @param type type of error (ERROR or INVALID_INPUT)
      */
-    public REngineEvalException(REngine eng, String message, int type) {
+    private REngineEvalException(REngine eng, String message, int type) {
         super(eng, message);
         this.type = type;
     }

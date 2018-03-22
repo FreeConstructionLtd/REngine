@@ -7,20 +7,20 @@ package org.rosuda.rengine;
  */
 public class REXP {
     /** specifies how many items of a vector or list will be displayed in {@link #toDebugString} */
-    public static int maxDebugItems = 32;
+    static final int maxDebugItems = 32;
     /** attribute list. This attribute should never be accessed directly. */
-    protected REXPList attr;
+    REXPList attr;
 
     /** public root contrsuctor, same as <tt>new REXP(null)</tt> */
-    public REXP() { }
+    REXP() { }
 
     // type checks
 
     /** public root constructor
      @param attr attribute list object (can be <code>null</code> */
-    public REXP(REXPList attr) { this.attr = attr; }
+    REXP(REXPList attr) { this.attr = attr; }
 
-    /** creates a REXP that represents a double matrix in R based on matrix of doubles (2D-array: m[rows][cols]). This is the same form as used by popular math packages for Java, such as JAMA. The result of this function can be used in {@link REngine.assign} to store a matrix in R.
+    /** creates a REXP that represents a double matrix in R based on matrix of doubles (2D-array: m[rows][cols]). This is the same form as used by popular math packages for Java, such as JAMA. The result of this function can be used in {@link REngine#assign} to store a matrix in R.
      @param matrix array <code>double[rows][colums]</code> containing the matrix to convert into a REXP. If <code>matrix</code> is <code>null</code> or either of the dimensions is 0 then the resulting matrix will have the dimensions <code>0 x 0</code> (Note: Java cannot represent <code>0 x n</code> matrices for <code>n &gt; 0</code>, so special matrices with one dimension of 0 can only be created by setting dimensions directly).
      @return <code>REXPDouble</code> with "dim" attribute which constitutes a matrix in R */
     public static REXP createDoubleMatrix(double[][] matrix) {
@@ -76,7 +76,7 @@ public class REXP {
                                         })));
     }
 
-    public static REXP asCall(REXP what, REXP[] args) {
+    private static REXP asCall(REXP what, REXP[] args) {
         RList l = new RList();
         l.add(what);
         for (int i = 0; i < args.length; i++) {
@@ -267,33 +267,26 @@ public class REXP {
 
     /** returns dimensions of the object (as determined by the "<code>dim</code>" attribute)
      * @return an array of integers with corresponding dimensions or <code>null</code> if the object has no dimension attribute */
-    public int[] dim() {
-        try {
-            return hasAttribute("dim") ? _attr().asList().at("dim").asIntegers() : null;
-        } catch (REXPMismatchException me) {
-        }
-        return null;
+    public int[] dim() throws REXPMismatchException {
+        return hasAttribute("dim") ? _attr().asList().at("dim").asIntegers() : null;
     }
 
     /** determines whether this object inherits from a given class in the same fashion as the <code>inherits()</code> function in R does (i.e. ignoring S4 inheritance)
      * @param klass class name
      * @return <code>true</code> if this object is of the class <code>klass</code>, <code>false</code> otherwise */
-    public boolean inherits(String klass) {
+    public boolean inherits(String klass) throws REXPMismatchException {
         if (!hasAttribute("class")) {
             return false;
         }
-        try {
-            String c[] = getAttribute("class").asStrings();
-            if (c != null) {
-                int i = 0;
-                while (i < c.length) {
-                    if (c[i] != null && c[i].equals(klass)) {
-                        return true;
-                    }
-                    i++;
+        String c[] = getAttribute("class").asStrings();
+        if (c != null) {
+            int i = 0;
+            while (i < c.length) {
+                if (c[i] != null && c[i].equals(klass)) {
+                    return true;
                 }
+                i++;
             }
-        } catch (REXPMismatchException me) {
         }
         return false;
     }

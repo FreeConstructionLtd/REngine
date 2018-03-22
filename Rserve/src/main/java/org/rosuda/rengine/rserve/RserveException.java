@@ -15,26 +15,34 @@ import org.rosuda.rengine.REngineException;
 import org.rosuda.rengine.rserve.protocol.RPacket;
 import org.rosuda.rengine.rserve.protocol.RTalk;
 
-public class RserveException extends REngineException {
-    protected int reqReturnCode;
+class RserveException extends REngineException {
+    private final int reqReturnCode;
 
     public RserveException(RConnection c, String msg) {
         this(c, msg, -1);
     }
 
-    public RserveException(RConnection c, String msg, Throwable cause) {
-        super(c, msg, cause);
+    public RserveException(RConnection connection, String msg, Throwable cause) {
+        super(connection, msg, cause);
         reqReturnCode = -1;
-        if (c != null) {
-            c.lastError = getMessage();
+        if (connection != null) {
+            connection.lastError = getMessage();
         }
     }
 
-    public RserveException(RConnection c, String msg, int requestReturnCode) {
-        super(c, msg);
+    public RserveException(RConnection connection, String msg, int requestReturnCode) {
+        super(connection, msg);
         reqReturnCode = requestReturnCode;
-        if (c != null) {
-            c.lastError = getMessage();
+        if (connection != null) {
+            connection.lastError = getMessage();
+        }
+    }
+
+    public RserveException(RConnection connection, String msg, Throwable cause, int requestReturnCode) {
+        super(connection, msg, cause);
+        reqReturnCode = requestReturnCode;
+        if (connection != null) {
+            connection.lastError = getMessage();
         }
     }
 
@@ -42,11 +50,11 @@ public class RserveException extends REngineException {
         this(c, msg, (p == null) ? -1 : p.getStat());
     }
 
-    public String getRequestErrorDescription() {
+    private String getRequestErrorDescription() {
         return getRequestErrorDescription(reqReturnCode);
     }
 
-    public String getRequestErrorDescription(int code) {
+    private String getRequestErrorDescription(int code) {
         switch (code) {
             case 0:
                 return "no error";

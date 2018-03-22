@@ -8,8 +8,8 @@ package org.rosuda.rengine.rserve.protocol;
  @version $Id$
  */
 public class RPacket {
-    private int cmd;
-    private byte[] cont;
+    private final int cmd;
+    private final byte[] cont;
 
     /** construct new packet
      @param Rcmd command

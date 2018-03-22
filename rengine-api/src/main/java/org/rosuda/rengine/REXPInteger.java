@@ -4,7 +4,7 @@ package org.rosuda.rengine;
 public class REXPInteger extends REXPVector {
     /** NA integer value as defined in R. Unlike its real equivalent this one can be used in comparisons, although {@link #isNA(int) } is provided for consistency. */
     public static final int NA = -2147483648;
-    protected int[] payload;
+    final int[] payload;
 
     /** create integer vector of the length 1 with the given value as its first (and only) element */
     public REXPInteger(int load) {

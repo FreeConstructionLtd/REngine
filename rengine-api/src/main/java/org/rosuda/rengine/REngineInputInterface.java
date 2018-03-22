@@ -9,5 +9,5 @@ public interface REngineInputInterface {
      *  @param addToHistory flag indicating whether the input is transient (<code>false</code>) or to be recorded in the command history (<code>true</code>).
      *  @return string to be processed as console input
      */
-    public String RReadConsole(REngine eng, String prompt, int addToHistory);
+    String RReadConsole(REngine eng, String prompt, int addToHistory);
 }

@@ -1,5 +1,6 @@
 package org.rosuda.rengine.rserve;
 
+import org.rosuda.rengine.rserve.protocol.RConnectionException;
 import org.rosuda.rengine.rserve.protocol.RPacket;
 import org.rosuda.rengine.rserve.protocol.RTalk;
 
@@ -7,13 +8,13 @@ public class RSession implements java.io.Serializable {
     // serial version UID should only change if method signatures change
     // significantly enough that previous versions cannot be used with
     // current versions
-    private static final long serialVersionUID = -7048099825974875604l;
+    private static final long serialVersionUID = -7048099825974875604L;
 
     String host;
     int port;
     byte[] key;
 
-    transient RPacket attachPacket = null; // response on session attach
+    private transient RPacket attachPacket = null; // response on session attach
     int rsrvVersion;
 
     protected RSession() {
@@ -35,7 +36,11 @@ public class RSession implements java.io.Serializable {
     /** attach/resume this session */
     public RConnection attach() throws RserveException {
         RConnection c = new RConnection(this);
-        attachPacket = c.getRTalk().request(-1);
+        try {
+            attachPacket = c.getRTalk().request(-1);
+        } catch (RConnectionException e) {
+            throw new RserveException(c, "Cannot attach", e);
+        }
         return c;
     }
 }

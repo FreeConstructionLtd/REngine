@@ -2,7 +2,7 @@ package org.rosuda.rengine;
 
 /** REXPRaw represents a raw vector in R - essentially a sequence of bytes. */
 public class REXPRaw extends REXPVector {
-    private byte[] payload;
+    private final byte[] payload;
 
     /** create a new raw vector with the specified payload
      *  @param load payload of the raw vector */

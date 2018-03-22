@@ -3,7 +3,7 @@ package org.rosuda.rengine;
 /** REXPJavaReference is a reference to a Java object that has been resolved from is R wrapper. Note that not all engines support references. */
 public class REXPJavaReference extends REXP {
     /** the referenced Java object */
-    Object object;
+    private final Object object;
 
     /** creates a new Java reference R object
      *  @param o Java object referenced by the REXP */

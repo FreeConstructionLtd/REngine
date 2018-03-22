@@ -8,33 +8,33 @@ package org.rosuda.rengine;
  *
  * @author Romain Francois <francoisromain@free.fr>
  */
-public class REXPWrapper {
+class REXPWrapper {
 
     /* various classes */
-    private static Class byte_ARRAY;
-    private static Class short_ARRAY;
-    private static Class int_ARRAY;
-    private static Class long_ARRAY;
-    private static Class float_ARRAY;
-    private static Class double_ARRAY;
-    private static Class boolean_ARRAY;
+    private static final Class byte_ARRAY;
+    private static final Class short_ARRAY;
+    private static final Class int_ARRAY;
+    private static final Class long_ARRAY;
+    private static final Class float_ARRAY;
+    private static final Class double_ARRAY;
+    private static final Class boolean_ARRAY;
 
-    private static Class String_ARRAY;
+    private static final Class String_ARRAY;
 
-    private static Class Byte_ARRAY;
-    private static Class Short_ARRAY;
-    private static Class Integer_ARRAY;
-    private static Class Long_ARRAY;
-    private static Class Float_ARRAY;
-    private static Class Double_ARRAY;
-    private static Class Boolean_ARRAY;
+    private static final Class Byte_ARRAY;
+    private static final Class Short_ARRAY;
+    private static final Class Integer_ARRAY;
+    private static final Class Long_ARRAY;
+    private static final Class Float_ARRAY;
+    private static final Class Double_ARRAY;
+    private static final Class Boolean_ARRAY;
 
     static {
         try {
             byte_ARRAY = Class.forName("[B");
             short_ARRAY = Class.forName("[S");
             int_ARRAY = Class.forName("[I");
-            long_ARRAY = (new long[1]).getClass(); /* FIXME */
+            long_ARRAY = Class.forName("[J");
             float_ARRAY = Class.forName("[F");
             double_ARRAY = Class.forName("[D");
             boolean_ARRAY = Class.forName("[Z");
@@ -50,10 +50,9 @@ public class REXPWrapper {
             Boolean_ARRAY = Class.forName("[Ljava.lang.Boolean;");
 
 
-        } catch (Exception e) {
+        } catch (ClassNotFoundException e) {
             // should never happen
-            e.printStackTrace();
-            System.err.println("problem while initiating the classes");
+            throw new IllegalStateException("Cannot instantiate class", e);
         }
     }
 
@@ -277,6 +276,5 @@ public class REXPWrapper {
 
         return null;
     }
-
 }
 

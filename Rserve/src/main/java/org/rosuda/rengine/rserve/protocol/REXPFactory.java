@@ -24,88 +24,93 @@ import org.rosuda.rengine.REXPSymbol;
 import org.rosuda.rengine.REXPUnknown;
 import org.rosuda.rengine.RList;
 import org.rosuda.rengine.rserve.RConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** representation of R-eXpressions in Java
 
  @version $Id$
  */
 public class REXPFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(REXPFactory.class);
+
     /** xpression type: NULL */
-    public static final int XT_NULL = 0;
+    private static final int XT_NULL = 0;
     /** xpression type: integer */
-    public static final int XT_INT = 1;
+    private static final int XT_INT = 1;
     /** xpression type: double */
-    public static final int XT_DOUBLE = 2;
+    private static final int XT_DOUBLE = 2;
     /** xpression type: String */
-    public static final int XT_STR = 3;
+    private static final int XT_STR = 3;
     /** xpression type: language construct (currently content is same as list) */
-    public static final int XT_LANG = 4;
+    private static final int XT_LANG = 4;
     /** xpression type: symbol (content is symbol name: String) */
-    public static final int XT_SYM = 5;
+    private static final int XT_SYM = 5;
     /** xpression type: RBool */
-    public static final int XT_BOOL = 6;
+    private static final int XT_BOOL = 6;
     /** xpression type: S4 object
      @since Rserve 0.5 */
-    public static final int XT_S4 = 7;
+    private static final int XT_S4 = 7;
     /** xpression type: generic vector (RList) */
-    public static final int XT_VECTOR = 16;
+    private static final int XT_VECTOR = 16;
     /** xpression type: dotted-pair list (RList) */
-    public static final int XT_LIST = 17;
+    private static final int XT_LIST = 17;
     /**
      * xpression type: closure (there is no java class for that type (yet?). currently the body of the closure is stored in
      * the content part of the REXP. Please note that this may change in the future!)
      */
-    public static final int XT_CLOS = 18;
+    private static final int XT_CLOS = 18;
     /** xpression type: symbol name
      @since Rserve 0.5 */
-    public static final int XT_SYMNAME = 19;
+    private static final int XT_SYMNAME = 19;
     /** xpression type: dotted-pair list (w/o tags)
      @since Rserve 0.5 */
-    public static final int XT_LIST_NOTAG = 20;
+    private static final int XT_LIST_NOTAG = 20;
     /** xpression type: dotted-pair list (w tags)
      @since Rserve 0.5 */
-    public static final int XT_LIST_TAG = 21;
+    private static final int XT_LIST_TAG = 21;
     /** xpression type: language list (w/o tags)
      @since Rserve 0.5 */
-    public static final int XT_LANG_NOTAG = 22;
+    private static final int XT_LANG_NOTAG = 22;
     /** xpression type: language list (w tags)
      @since Rserve 0.5 */
-    public static final int XT_LANG_TAG = 23;
+    private static final int XT_LANG_TAG = 23;
     /** xpression type: expression vector */
-    public static final int XT_VECTOR_EXP = 26;
+    private static final int XT_VECTOR_EXP = 26;
     /** xpression type: string vector */
-    public static final int XT_VECTOR_STR = 27;
+    private static final int XT_VECTOR_STR = 27;
     /** xpression type: int[] */
-    public static final int XT_ARRAY_INT = 32;
+    private static final int XT_ARRAY_INT = 32;
     /** xpression type: double[] */
-    public static final int XT_ARRAY_DOUBLE = 33;
+    private static final int XT_ARRAY_DOUBLE = 33;
     /** xpression type: String[] (currently not used, Vector is used instead) */
-    public static final int XT_ARRAY_STR = 34;
+    private static final int XT_ARRAY_STR = 34;
     /** internal use only! this constant should never appear in a REXP */
-    public static final int XT_ARRAY_BOOL_UA = 35;
+    private static final int XT_ARRAY_BOOL_UA = 35;
     /** xpression type: RBool[] */
-    public static final int XT_ARRAY_BOOL = 36;
+    private static final int XT_ARRAY_BOOL = 36;
     /** xpression type: raw (byte[])
      @since Rserve 0.4-? */
-    public static final int XT_RAW = 37;
+    private static final int XT_RAW = 37;
     /** xpression type: Complex[]
      @since Rserve 0.5 */
-    public static final int XT_ARRAY_CPLX = 38;
+    private static final int XT_ARRAY_CPLX = 38;
     /** xpression type: unknown; no assumptions can be made about the content */
-    public static final int XT_UNKNOWN = 48;
+    private static final int XT_UNKNOWN = 48;
 
     /**
      * xpression type: RFactor; this XT is internally generated (ergo is does not come from Rsrv.h) to support RFactor class
      * which is built from XT_ARRAY_INT */
-    public static final int XT_FACTOR = 127;
+    private static final int XT_FACTOR = 127;
 
     /** used for transport only - has attribute */
     private static final int XT_HAS_ATTR = 128;
 
-    int type;
-    REXPFactory attr;
-    REXP cont;
-    RList rootList;
+    private int type;
+    private REXPFactory attr;
+    private REXP cont;
+    private RList rootList;
 
     public REXPFactory() {
     }
@@ -144,19 +149,17 @@ public class REXPFactory {
         } else if (r instanceof REXPLogical) {
             type = XT_ARRAY_BOOL;
         } else {
-            // throw new REXPMismatchException(r, "decode");
-            System.err.println("*** REXPFactory unable to interpret " + r);
+            throw new REXPMismatchException(r, "REXPFactory unable to interpret");
         }
     }
 
-    public static int getStringBinaryRepresentation(byte[] buf, int off, String s) {
+    private static int getStringBinaryRepresentation(byte[] buf, int off, String s) {
         if (s == null) {
             s = "";
         }
         int io = off;
         try {
             byte b[] = s.getBytes(RConnection.transferCharset);
-            // System.out.println("<str> @"+off+", len "+b.length+" (cont "+buf.length+") \""+s+"\"");
             System.arraycopy(b, 0, buf, io, b.length);
             io += b.length;
             b = null;
@@ -257,7 +260,7 @@ public class REXPFactory {
 
     public REXP getREXP() { return cont; }
 
-    public REXPList getAttr() { return (attr == null) ? null : (REXPList) attr.cont; }
+    private REXPList getAttr() { return (attr == null) ? null : (REXPList) attr.cont; }
 
     /**
      * Parses byte buffer for binary representation of xpressions - read one xpression slot (descends recursively for aggregated
@@ -293,7 +296,7 @@ public class REXPFactory {
             double[] d = new double[] {Double.longBitsToDouble(lr)};
             o += 8;
             if (o != eox) {
-                System.err.println("Warning: double SEXP size mismatch\n");
+                log.warn("double SEXP size mismatch");
                 o = eox;
             }
             cont = new REXPDouble(d, getAttr());
@@ -308,7 +311,7 @@ public class REXPFactory {
                 i++;
             }
             if (o != eox) {
-                System.err.println("Warning: double array SEXP size mismatch\n");
+                log.warn("double array SEXP size mismatch");
                 o = eox;
             }
             cont = new REXPDouble(d, getAttr());
@@ -324,7 +327,7 @@ public class REXPFactory {
             if (o != eox) {
                 if (eox != o + 3) // o+3 could happen if the result was aligned (1 byte data + 3 bytes padding)
                 {
-                    System.err.println("Warning: bool SEXP size mismatch\n");
+                    log.warn("bool SEXP size mismatch");
                 }
                 o = eox;
             }
@@ -362,7 +365,7 @@ public class REXPFactory {
             cont = new REXPInteger(i, getAttr());
             o += 4;
             if (o != eox) {
-                System.err.println("Warning: int SEXP size mismatch\n");
+                log.warn("int SEXP size mismatch");
                 o = eox;
             }
             return o;
@@ -376,22 +379,19 @@ public class REXPFactory {
                 i++;
             }
             if (o != eox) {
-                System.err.println("Warning: int array SEXP size mismatch\n");
+                log.warn("int array SEXP size mismatch");
                 o = eox;
             }
             cont = null;
             // hack for lists - special lists attached to int are factors
-            try {
-                if (getAttr() != null) {
-                    REXP ca = getAttr().asList().at("class");
-                    REXP ls = getAttr().asList().at("levels");
-                    if (ca != null && ls != null && ca.asString().equals("factor")) {
-                        // R uses 1-based index, Java uses 0-based one
-                        cont = new REXPFactor(d, ls.asStrings(), getAttr());
-                        xt = XT_FACTOR;
-                    }
+            if (getAttr() != null) {
+                REXP ca = getAttr().asList().at("class");
+                REXP ls = getAttr().asList().at("levels");
+                if (ca != null && ls != null && ca.asString().equals("factor")) {
+                    // R uses 1-based index, Java uses 0-based one
+                    cont = new REXPFactor(d, ls.asStrings(), getAttr());
+                    xt = XT_FACTOR;
                 }
-            } catch (Exception e) {
             }
             if (cont == null) {
                 cont = new REXPInteger(d, getAttr());
@@ -431,7 +431,7 @@ public class REXPFactory {
                    new REXPLanguage(l, getAttr()) :
                    new REXPList(l, getAttr());
             if (o != eox) {
-                System.err.println("Warning: int list SEXP size mismatch\n");
+                log.warn("int list SEXP size mismatch");
                 o = eox;
             }
             return o;
@@ -448,11 +448,9 @@ public class REXPFactory {
             o = headf.parseREXP(buf, o);
             int elIndex = rootList.size();
             rootList.add(headf.cont);
-            //System.out.println("HEAD="+headf.cont);
             o = parseREXP(buf, o); // we use ourselves recursively for the body
             if (o < eox) {
                 o = tagf.parseREXP(buf, o);
-                //System.out.println("TAG="+tagf.cont);
                 if (tagf.cont != null && (tagf.cont.isString() || tagf.cont.isSymbol())) {
                     rootList.setKeyAt(elIndex, tagf.cont.asString());
                 }
@@ -462,7 +460,6 @@ public class REXPFactory {
                        new REXPList(rootList, getAttr()) :
                        new REXPLanguage(rootList, getAttr());
                 rootList = null;
-                //System.out.println("result="+cont);
             }
             return o;
         }
@@ -474,7 +471,7 @@ public class REXPFactory {
                 v.addElement(xx.cont);
             }
             if (o != eox) {
-                System.err.println("Warning: int vector SEXP size mismatch\n");
+                log.warn("int vector SEXP size mismatch");
                 o = eox;
             }
             // fixup for lists since they're stored as attributes of vectors
@@ -547,7 +544,7 @@ public class REXPFactory {
                 v.addElement(xx.cont.asString());
             }
             if (o != eox) {
-                System.err.println("Warning: int vector SEXP size mismatch\n");
+                log.warn("int vector SEXP size mismatch");
                 o = eox;
             }
             String sa[] = new String[v.size()];
@@ -571,7 +568,7 @@ public class REXPFactory {
                     cont = new REXPSymbol(new String(buf, o, i - o, RConnection.transferCharset));
                 }
             } catch (Exception e) {
-                System.err.println("unable to convert string\n");
+                log.error("unable to convert string\n");
                 cont = null;
             }
             o = eox;
@@ -586,17 +583,6 @@ public class REXPFactory {
         }
 
         if (xt == XT_CLOS) {
-			/*
-			REXP form=new REXP();
-			REXP body=new REXP();
-			o=parseREXP(form,buf,o);
-			o=parseREXP(body,buf,o);
-			if (o!=eox) {
-				System.err.println("Warning: closure SEXP size mismatch\n");
-				o=eox;
-			}
-			x.cont=body;
-			 */
             o = eox;
             return o;
         }
@@ -615,7 +601,7 @@ public class REXPFactory {
 
         cont = null;
         o = eox;
-        System.err.println("unhandled type: " + xt);
+        log.error("unhandled type: " + xt);
         return o;
     }
 
@@ -631,15 +617,9 @@ public class REXPFactory {
         if (type == XT_LIST || type == XT_LIST_TAG || type == XT_LIST_NOTAG) {
             rxt = (cont.asList() != null && cont.asList().isNamed()) ? XT_LIST_TAG : XT_LIST_NOTAG;
         }
-        //System.out.print("len["+xtName(type)+"/"+xtName(rxt)+"] ");
         if (type == XT_VECTOR_STR) {
             rxt = XT_ARRAY_STR; // VECTOR_STR is broken right now
         }
-
-		/*
-		if (type==XT_VECTOR && cont.asList()!=null && cont.asList().isNamed())
-			setAttribute("names",new REXPString(cont.asList().keys()));
-		 */
 
         boolean hasAttr = false;
         REXPList a = getAttr();
@@ -710,7 +690,6 @@ public class REXPFactory {
                         if ((l & 3) > 0) {
                             l = l - (l & 3) + 4;
                         }
-                        // System.out.println("TAG length: "+(l-pl));
                     }
                     i++;
                 }
@@ -751,7 +730,6 @@ public class REXPFactory {
         if (l > 0xfffff0) {
             l += 4; // large data need 4 more bytes
         }
-        // System.out.println("len:"+(l+4)+" "+xtName(rxt)+"/"+xtName(type)+" "+cont);
         return l + 4; // add the header
     }
 
@@ -783,7 +761,6 @@ public class REXPFactory {
         if (type == XT_LIST || type == XT_LIST_TAG || type == XT_LIST_NOTAG) {
             rxt = (cont.asList() != null && cont.asList().isNamed()) ? XT_LIST_TAG : XT_LIST_NOTAG;
         }
-        // System.out.println("@"+off+": "+xtName(rxt)+"/"+xtName(type)+" "+cont+" ("+myl+"/"+buf.length+") att="+hasAttr);
         RTalk.setHdr(rxt | (hasAttr ? XT_HAS_ATTR : 0), myl - (isLarge ? 8 : 4), buf, off);
         off += (isLarge ? 8 : 4);
         if (hasAttr) {
@@ -894,7 +871,6 @@ public class REXPFactory {
                         i++;
                     }
                 }
-                // System.out.println("io="+io+", expected: "+(ooff+myl));
                 break;
             }
 

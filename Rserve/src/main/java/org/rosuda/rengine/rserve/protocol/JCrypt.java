@@ -362,7 +362,7 @@ public class JCrypt {
                     0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A
             };
 
-    private static final int byteToUnsigned(byte b) {
+    private static int byteToUnsigned(byte b) {
         int value = (int) b;
 
         return (value >= 0 ? value : value + 256);
@@ -379,14 +379,14 @@ public class JCrypt {
         return (value);
     }
 
-    private static final void intToFourBytes(int iValue, byte b[], int offset) {
+    private static void intToFourBytes(int iValue, byte b[], int offset) {
         b[offset++] = (byte) ((iValue) & 0xff);
         b[offset++] = (byte) ((iValue >>> 8) & 0xff);
         b[offset++] = (byte) ((iValue >>> 16) & 0xff);
         b[offset++] = (byte) ((iValue >>> 24) & 0xff);
     }
 
-    private static final void PERM_OP(int a, int b, int n, int m, int results[]) {
+    private static void PERM_OP(int a, int b, int n, int m, int results[]) {
         int t;
 
         t = ((a >>> n) ^ b) & m;
@@ -397,7 +397,7 @@ public class JCrypt {
         results[1] = b;
     }
 
-    private static final int HPERM_OP(int a, int n, int m) {
+    private static int HPERM_OP(int a, int n, int m) {
         int t;
 
         t = ((a << (16 - n)) ^ a) & m;
@@ -472,7 +472,7 @@ public class JCrypt {
         return (schedule);
     }
 
-    private static final int D_ENCRYPT
+    private static int D_ENCRYPT
             (
                     int L, int R, int S, int E0, int E1, int s[]
             ) {
@@ -497,7 +497,7 @@ public class JCrypt {
         return (L);
     }
 
-    private static final int[] body(int schedule[], int Eswap0, int Eswap1) {
+    private static int[] body(int schedule[], int Eswap0, int Eswap1) {
         int left = 0;
         int right = 0;
         int t = 0;
@@ -550,7 +550,7 @@ public class JCrypt {
         return (out);
     }
 
-    public static final String crypt(String salt, String original) {
+    public static String crypt(String salt, String original) {
         while (salt.length() < 2) {
             salt += "A";
         }

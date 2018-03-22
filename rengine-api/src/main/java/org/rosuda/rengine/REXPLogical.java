@@ -8,7 +8,7 @@ public class REXPLogical extends REXPVector {
     public static final byte FALSE = 0;
     /** NA integer value as defined in R. Unlike its real equivalent this one can be used in comparisons, although {@link #isNA(int) } is provided for consistency. */
     static final int NA_internal = -2147483648;
-    protected byte[] payload;
+    private final byte[] payload;
 
     /** create logical vector of the length 1 with the given value as its first (and only) element */
     public REXPLogical(boolean load) {

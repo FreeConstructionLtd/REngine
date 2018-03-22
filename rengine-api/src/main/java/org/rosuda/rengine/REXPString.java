@@ -3,7 +3,7 @@ package org.rosuda.rengine;
 /** REXPString represents a character vector in R. */
 public class REXPString extends REXPVector {
     /** payload */
-    private String[] payload;
+    private final String[] payload;
 
     /** create a new character vector of the length one
      *  @param load first (and only) element of the vector */

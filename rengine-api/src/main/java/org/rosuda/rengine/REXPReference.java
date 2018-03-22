@@ -5,14 +5,14 @@ package org.rosuda.rengine;
  The reference semantics works by calling {@link #resolve()} (which in turn uses {@link REngine#resolveReference(REXP)} on itself) whenever any methods are accessed. The implementation is not finalized yat and may change as we approach the JRI interface which is more ameanable to reference-style access. Subclasses are free to implement more efficient implementations. */
 public class REXPReference extends REXP {
     /** engine which will be used to resolve the reference */
-    protected REngine eng;
+    private final REngine eng;
     /** an opaque (optional) handle */
-    protected Object handle;
+    private final Object handle;
     /** resolved (cached) object */
-    protected REXP resolvedValue;
+    private REXP resolvedValue;
 
     /** create an external REXP reference using given engine and handle. The handle value is just an (optional) identifier not used by the implementation directly. */
-    public REXPReference(REngine eng, Object handle) {
+    private REXPReference(REngine eng, Object handle) {
         super();
         this.eng = eng;
         this.handle = handle;

@@ -6,7 +6,7 @@ import java.util.Vector;
 /** REXPGenericVector represents a generic vector in R. Its elements can be typically of any {@link REXP} type. */
 public class REXPGenericVector extends REXPVector {
     /** payload */
-    private RList payload;
+    private final RList payload;
 
     /** creates a new generic vector from a list. If the list is named, the <code>"names"</code> attribute is created automatically from it.
      *  @param list list to create the vector from */

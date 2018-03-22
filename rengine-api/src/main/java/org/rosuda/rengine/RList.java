@@ -166,7 +166,6 @@ public class RList extends Vector implements List {
             k[i] = keyAt(i);
             i++;
         }
-        ;
         return k;
     }
 
@@ -373,7 +372,7 @@ public class RList extends Vector implements List {
         if (t == null) {
             return;
         }
-        RList l = (RList) t;
+        RList l = t;
         if (names == null) {
             addAll(l);
             return;

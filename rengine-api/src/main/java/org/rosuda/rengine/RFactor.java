@@ -14,9 +14,9 @@ import java.util.Vector;
  @version $Id$
  */
 public class RFactor {
-    int ids[];
-    String levels[];
-    int index_base;
+    private final int[] ids;
+    private final String[] levels;
+    private int index_base;
 
     /** create a new, empty factor var */
     public RFactor() {

@@ -15,6 +15,7 @@ import org.rosuda.rengine.REXPSymbol;
 import org.rosuda.rengine.REngine;
 import org.rosuda.rengine.REngineException;
 import org.rosuda.rengine.rserve.protocol.JCrypt;
+import org.rosuda.rengine.rserve.protocol.RConnectionException;
 import org.rosuda.rengine.rserve.protocol.REXPFactory;
 import org.rosuda.rengine.rserve.protocol.RPacket;
 import org.rosuda.rengine.rserve.protocol.RTalk;
@@ -27,6 +28,7 @@ public class RConnection extends REngine {
     private static final int AT_plain = 0;
     /** authorization type: unix crypt */
     private static final int AT_crypt = 1;
+    private static final String EVAL_FAILED_ERROR_MESSAGE = "eval failed";
     /**
      * This static variable specifies the character set used to encode string for transfer. Under normal circumstances
      * there should be no reason for changing this variable. The default is UTF-8, which makes sure that 7-bit ASCII
@@ -37,7 +39,7 @@ public class RConnection extends REngine {
      */
     public static final String transferCharset = "UTF-8";
     /** version of the server (as reported in IDstring just after Rsrv) */
-    protected int rsrvVersion;
+    int rsrvVersion;
     /** last error string */
     String lastError = null;
     private Socket socket;
@@ -139,7 +141,7 @@ public class RConnection extends REngine {
         rt = new RTalk(is, os);
         if (session == null) {
             byte[] IDs = new byte[32];
-            int n = -1;
+            int n;
             try {
                 n = is.read(IDs);
             } catch (Exception sre) {
@@ -153,9 +155,11 @@ public class RConnection extends REngine {
                 if (ids.substring(0, 4).compareTo("Rsrv") != 0) {
                     throw new RserveException(this, "Handshake failed: Rsrv signature expected, but received \"" + ids + "\" instead.");
                 }
+                String version = ids.substring(4, 8);
                 try {
-                    rsrvVersion = Integer.parseInt(ids.substring(4, 8));
-                } catch (Exception px) {
+                    rsrvVersion = Integer.parseInt(version);
+                } catch (NumberFormatException px) {
+                    throw new RserveException(this, "Cannot parse server version: " + version, px);
                 }
                 // we support (knowingly) up to 103
                 if (rsrvVersion > 103) {
@@ -185,7 +189,8 @@ public class RConnection extends REngine {
             } catch (RserveException innerX) {
                 try {
                     socket.close();
-                } catch (Exception ex01) {
+                } catch (Exception e) {
+                    throw new RserveException(this, "Cannot close socket", e);
                 }
                 is = null;
                 os = null;
@@ -224,9 +229,9 @@ public class RConnection extends REngine {
             }
             connected = false;
             return true;
-        } catch (Exception e) {
+        } catch (IOException e) {
+            return false;
         }
-        return false;
     }
 
     /** evaluates the given command, but does not fetch the result (useful for assignment
@@ -236,17 +241,21 @@ public class RConnection extends REngine {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
-        RPacket rp = rt.request(RTalk.CMD_voidEval, cmd + "\n");
-        if (rp != null && rp.isOk()) {
-            return;
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_voidEval, cmd + "\n");
+            if (rp == null || !rp.isOk()) {
+                throw new RserveException(this, "voidEval failed", rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, "voidEval failed", e, RTalk.ERR_conn_broken);
         }
-        throw new RserveException(this, "voidEval failed", rp);
     }
 
     /**
      * Evaluates the given command, detaches the session (see @link{detach()}) and closes connection while the command
      * is being evaluted (requires Rserve 0.4+).
-     * Note that a session cannot be attached again until the commad was successfully processed. Techincally the
+     * Note that a session cannot be attached again until the commad was successfully processed. Technically the
      * session is put into listening mode while the command is being evaluated but accept is called only after the
      * command was evaluated. One commonly used techique to monitor detached working sessions is to use second
      * connection to poll the status (e.g. create a temporary file and return the full path before detaching thus
@@ -258,16 +267,21 @@ public class RConnection extends REngine {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
-        RPacket rp = rt.request(RTalk.CMD_detachedVoidEval, cmd + "\n");
-        if (rp == null || !rp.isOk()) {
-            throw new RserveException(this, "detached void eval failed", rp);
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_detachedVoidEval, cmd + "\n");
+            if (rp == null || !rp.isOk()) {
+                throw new RserveException(this, "detached void eval failed", rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, EVAL_FAILED_ERROR_MESSAGE, e, RTalk.ERR_conn_broken);
         }
         RSession s = new RSession(this, rp);
         close();
         return s;
     }
 
-    REXP parseEvalResponse(RPacket rp) throws RserveException {
+    private REXP parseEvalResponse(RPacket rp) throws RserveException {
         int rxo = 0;
         byte[] pc = rp.getCont();
         if (rsrvVersion > 100) { /* since 0101 eval responds correctly by using DT_SEXP type/len header which is 4 bytes long */
@@ -289,7 +303,6 @@ public class RConnection extends REngine {
                 rx.parseREXP(pc, rxo);
                 return rx.getREXP();
             } catch (REXPMismatchException me) {
-                me.printStackTrace();
                 throw new RserveException(this, "Error when parsing response: " + me.getMessage(), me);
             }
         }
@@ -303,11 +316,17 @@ public class RConnection extends REngine {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
-        RPacket rp = rt.request(RTalk.CMD_eval, cmd + "\n");
-        if (rp != null && rp.isOk()) {
-            return parseEvalResponse(rp);
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_eval, cmd + "\n");
+            if (rp != null && rp.isOk()) {
+                return parseEvalResponse(rp);
+            } else {
+                throw new RserveException(this, EVAL_FAILED_ERROR_MESSAGE, rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, EVAL_FAILED_ERROR_MESSAGE, e, RTalk.ERR_conn_broken);
         }
-        throw new RserveException(this, "eval failed", rp);
     }
 
     /**
@@ -350,11 +369,7 @@ public class RConnection extends REngine {
         }
         RTalk.setHdr(RTalk.DT_STRING, sl, rq, 0);
         RTalk.setHdr(RTalk.DT_STRING, cl, rq, sl + 4);
-        RPacket rp = rt.request(RTalk.CMD_setSEXP, rq);
-        if (rp != null && rp.isOk()) {
-            return;
-        }
-        throw new RserveException(this, "assign failed", rp);
+        requestSetSEXP(rq);
     }
 
     /**
@@ -390,13 +405,21 @@ public class RConnection extends REngine {
             RTalk.setHdr(RTalk.DT_STRING, sl, rq, 0);
             RTalk.setHdr(RTalk.DT_SEXP, rl, rq, sl + 4);
             r.getBinaryRepresentation(rq, sl + ((rl > 0xfffff0) ? 12 : 8));
-            RPacket rp = rt.request(RTalk.CMD_setSEXP, rq);
-            if (rp != null && rp.isOk()) {
-                return;
-            }
-            throw new RserveException(this, "assign failed", rp);
+            requestSetSEXP(rq);
         } catch (REXPMismatchException me) {
             throw new RserveException(this, "Error creating binary representation: " + me.getMessage(), me);
+        }
+    }
+
+    private void requestSetSEXP(byte[] rq) throws RserveException {
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_setSEXP, rq);
+            if (rp == null || !rp.isOk()) {
+                throw new RserveException(this, "assign failed", rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, "assign failed", e, RTalk.ERR_conn_broken);
         }
     }
 
@@ -420,11 +443,15 @@ public class RConnection extends REngine {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
-        RPacket rp = rt.request(RTalk.CMD_removeFile, fn);
-        if (rp != null && rp.isOk()) {
-            return;
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_removeFile, fn);
+            if (rp == null || !rp.isOk()) {
+                throw new RserveException(this, "removeFile failed", rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, "removeFile failed", e, RTalk.ERR_conn_broken);
         }
-        throw new RserveException(this, "removeFile failed", rp);
     }
 
     /** shutdown remote Rserve. Note that some Rserves cannot be shut down from the client side. */
@@ -433,11 +460,15 @@ public class RConnection extends REngine {
             throw new RserveException(this, "Not connected");
         }
 
-        RPacket rp = rt.request(RTalk.CMD_shutdown);
-        if (rp != null && rp.isOk()) {
-            return;
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_shutdown);
+            if (rp == null || !rp.isOk()) {
+                throw new RserveException(this, "shutdown failed", rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, "shutdown failed", e, RTalk.ERR_conn_broken);
         }
-        throw new RserveException(this, "shutdown failed", rp);
     }
 
     /** Sets send buffer size of the Rserve (in bytes) for the current connection. All responses send by Rserve are stored in the
@@ -455,11 +486,15 @@ public class RConnection extends REngine {
             throw new RserveException(this, "Not connected");
         }
 
-        RPacket rp = rt.request(RTalk.CMD_setBufferSize, (int) sbs);
-        if (rp != null && rp.isOk()) {
-            return;
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_setBufferSize, (int) sbs);
+            if (rp == null || !rp.isOk()) {
+                throw new RserveException(this, "setSendBufferSize failed", rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, "setSendBufferSize failed", e, RTalk.ERR_conn_broken);
         }
-        throw new RserveException(this, "setSendBufferSize failed", rp);
     }
 
     /** set string encoding for this session. It is strongly
@@ -478,18 +513,22 @@ public class RConnection extends REngine {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
-        RPacket rp = rt.request(RTalk.CMD_setEncoding, enc);
-        if (rp != null && rp.isOk()) {
-            return;
+        RPacket rp;
+        try {
+            rp = rt.request(RTalk.CMD_setEncoding, enc);
+            if (rp == null || !rp.isOk()) {
+                throw new RserveException(this, "setStringEncoding failed", rp);
+            }
+        } catch (RConnectionException e) {
+            throw new RserveException(this, "setStringEncoding failed", e, RTalk.ERR_conn_broken);
         }
-        throw new RserveException(this, "setStringEncoding failed", rp);
     }
 
     /** login using supplied user/pwd. Note that login must be the first
      command if used
      @param user username
      @param pwd password */
-    public void login(String user, String pwd) throws RserveException {
+    public void login(String user, String pwd) throws RserveException, RConnectionException {
         if (!authReq) {
             return;
         }
@@ -507,7 +546,23 @@ public class RConnection extends REngine {
             }
             try {
                 socket.close();
-            } catch (Exception e) {
+            } catch (IOException e) {
+                throw new RConnectionException("Cannot close socket", e);
+            }
+            is = null;
+            os = null;
+            socket = null;
+            connected = false;
+            throw new RserveException(this, "login failed", rp);
+        } else {
+            RPacket rp = rt.request(RTalk.CMD_login, user + "\n" + pwd);
+            if (rp != null && rp.isOk()) {
+                return;
+            }
+            try {
+                socket.close();
+            } catch (IOException e) {
+                throw new RConnectionException("Cannot close socket", e);
             }
             is = null;
             os = null;
@@ -515,19 +570,6 @@ public class RConnection extends REngine {
             connected = false;
             throw new RserveException(this, "login failed", rp);
         }
-        RPacket rp = rt.request(RTalk.CMD_login, user + "\n" + pwd);
-        if (rp != null && rp.isOk()) {
-            return;
-        }
-        try {
-            socket.close();
-        } catch (Exception e) {
-        }
-        is = null;
-        os = null;
-        socket = null;
-        connected = false;
-        throw new RserveException(this, "login failed", rp);
     }
 
 
@@ -535,7 +577,7 @@ public class RConnection extends REngine {
      * detaches the session and closes the connection (requires Rserve 0.4+). The session can be only resumed by calling
      * {@link RSession#attach}
      * */
-    public RSession detach() throws RserveException {
+    public RSession detach() throws RserveException, RConnectionException {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
@@ -572,7 +614,7 @@ public class RConnection extends REngine {
      * @param cmd command/expression string
      * @since Rserve 0.6-0
      */
-    public void serverEval(String cmd) throws RserveException {
+    public void serverEval(String cmd) throws RserveException, RConnectionException {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
@@ -590,7 +632,7 @@ public class RConnection extends REngine {
      *                   a different working directory than the client child process!).
      * @since Rserve 0.6-0
      */
-    public void serverSource(String serverFile) throws RserveException {
+    public void serverSource(String serverFile) throws RserveException, RConnectionException {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
@@ -610,7 +652,7 @@ public class RConnection extends REngine {
      * for Rserve 0.6-0 and higher.
      * @since Rserve 0.6-0
      */
-    public void serverShutdown() throws RserveException {
+    public void serverShutdown() throws RserveException, RConnectionException {
         if (!connected || rt == null) {
             throw new RserveException(this, "Not connected");
         }
@@ -644,9 +686,11 @@ public class RConnection extends REngine {
             if (rp != null && rp.isOk()) {
                 return parseEvalResponse(rp);
             }
-            throw new RserveException(this, "eval failed", rp);
+            throw new RserveException(this, EVAL_FAILED_ERROR_MESSAGE, rp);
         } catch (REXPMismatchException me) {
             throw new RserveException(this, "Error creating binary representation: " + me.getMessage(), me);
+        } catch (RConnectionException e) {
+            throw new RserveException(this, "Connection error: " + e.getMessage(), e, RTalk.ERR_conn_broken);
         }
     }
 
@@ -654,11 +698,7 @@ public class RConnection extends REngine {
         if (where != null) {
             throw new REngineException(this, "Rserve doesn't support environments other than .GlobalEnv");
         }
-        try {
-            return eval(text);
-        } catch (RserveException re) {
-            throw new REngineException(this, re.getMessage(), re);
-        }
+        return eval(text);
     }
 
     /** assign into an environment
@@ -669,11 +709,7 @@ public class RConnection extends REngine {
         if (env != null) {
             throw new REngineException(this, "Rserve doesn't support environments other than .GlobalEnv");
         }
-        try {
-            assign(symbol, value);
-        } catch (RserveException re) {
-            throw new REngineException(this, re.getMessage(), re);
-        }
+        assign(symbol, value);
     }
 
     /** get a value from an environment
@@ -685,11 +721,7 @@ public class RConnection extends REngine {
         if (!resolve) {
             throw new REngineException(this, "Rserve doesn't support references");
         }
-        try {
-            return eval(new REXPSymbol(symbol), env, true);
-        } catch (RserveException re) {
-            throw new REngineException(this, re.getMessage());
-        }
+        return eval(new REXPSymbol(symbol), env, true);
     }
 
     /** fetch the contents of the given reference. The resulting REXP may never be REXPReference.

@@ -3,8 +3,8 @@ package org.rosuda.rengine;
 /** REXPFactor represents a factor in R. It is an integer vector with levels for each contained category. */
 // FIXME: this is currently somehow screwed - the concept of RFactor and REXPFactor is duplicate - we need to remove this historical baggage
 public class REXPFactor extends REXPInteger {
-    private String[] levels;
-    private RFactor factor;
+    private final String[] levels;
+    private final RFactor factor;
 
     /** create a new factor REXP
      *  @param ids indices (one-based!)

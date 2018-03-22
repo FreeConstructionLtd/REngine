@@ -14,8 +14,8 @@ package org.rosuda.rengine;
 
 /** This exception is thrown whenever the operation requested is not supported by the given R object type, e.g. using <tt>asStrings</tt> on an S4 object. Most {@link REXP} methods throw this exception. Previous R/Java interfaces were silently returning <code>null</code> in those cases, but using exceptions helps to write more robust code. */
 public class REXPMismatchException extends Exception {
-    REXP sender;
-    String access;
+    private final REXP sender;
+    private final String access;
 
     /** primary constructor. The exception message will be formed as "attempt to access &lt;REXP-class&gt; as &lt;access-string&gt;"
      * @param sender R object that triggered this exception (cannot be <code>null</code>!)
