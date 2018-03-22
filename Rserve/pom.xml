@@ -3,19 +3,23 @@
          xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.rosuda.REngine</groupId>
+    <parent>
+        <groupId>org.rosuda.REngine</groupId>
+        <artifactId>REngine</artifactId>
+        <version>2.1.1-fc-SNAPSHOT</version>
+    </parent>
+
     <artifactId>Rserve</artifactId>
     <name>Rserve client back-end for REngine</name>
     <description>Rserve client back-end implementation for REngine to access R from Java via Rserve.</description>
-    <version>1.8.2-SNAPSHOT</version>
 
     <url>http://github.com/s-u/REngine</url>
 
     <dependencies>
         <dependency>
             <groupId>org.rosuda.REngine</groupId>
-            <artifactId>REngine</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
+            <artifactId>rengine-api</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -43,40 +47,6 @@
         </dependency>
 
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
-                <executions>
-                    <execution>
-                        <id>java-1.4-compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <source>1.4</source>
-                            <target>1.4</target>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>java-1.5-compile</id>
-                        <phase>process-test-sources</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <source>1.5</source>
-                            <target>1.5</target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 
     <profiles>
         <profile>
