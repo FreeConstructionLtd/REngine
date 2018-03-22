@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.rosuda.REngine</groupId>
+        <groupId>pl.freeconstruction.rserve</groupId>
         <artifactId>REngine</artifactId>
-        <version>2.1.1-fc-SNAPSHOT</version>
+        <version>2.1.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>Rserve</artifactId>
@@ -17,8 +17,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.rosuda.REngine</groupId>
-            <artifactId>rengine-api</artifactId>
+            <groupId>pl.freeconstruction.rserve</groupId>
+            <artifactId>REngine-api</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -42,7 +42,7 @@
         <dependency>
             <groupId>com.github.tdomzal</groupId>
             <artifactId>junit-docker-rule</artifactId>
-            <version>0.3</version>
+            <version>0.4</version>
             <scope>test</scope>
         </dependency>
 

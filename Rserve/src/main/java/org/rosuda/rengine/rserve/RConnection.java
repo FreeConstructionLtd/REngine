@@ -35,7 +35,7 @@ public class RConnection extends REngine {
      * <u>before</u> connecting to the Rserve in case later Rserves will provide a possibility of setting the encoding
      * during the handshake.
      */
-    public static String transferCharset = "UTF-8";
+    public static final String transferCharset = "UTF-8";
     /** version of the server (as reported in IDstring just after Rsrv) */
     protected int rsrvVersion;
     /** last error string */
