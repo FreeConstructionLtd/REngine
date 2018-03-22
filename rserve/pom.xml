@@ -3,49 +3,50 @@
          xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>pl.freeconstruction.rserve</groupId>
-    <artifactId>REngine</artifactId>
-    <name>REngine Java interface to R</name>
-    <description>REngine API to access R from Java in a backend-independent way.</description>
-    <version>2.1.1-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <parent>
+        <groupId>pl.freeconstruction.rserve</groupId>
+        <artifactId>REngine</artifactId>
+        <version>2.1.1-SNAPSHOT</version>
+    </parent>
 
-    <modules>
-        <module>rserve</module>
-        <module>rengine-api</module>
-    </modules>
+    <artifactId>Rserve</artifactId>
+    <name>Rserve client back-end for REngine</name>
+    <description>Rserve client back-end implementation for REngine to access R from Java via Rserve.</description>
 
-    <url>https://github.com/FreeConstructionLtd/REngine</url>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-    <licenses>
-        <license>
-            <name>LGPL v2.1</name>
-            <url>https://www.gnu.org/licenses/lgpl-2.1.txt</url>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <name>Simon Urbanek</name>
-            <email>simon.urbanek@R-project.org</email>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:https://github.com/s-u/REngine.git</connection>
-        <developerConnection>scm:git:git@github.com:s-u/REngine.git</developerConnection>
-        <url>https://github.com/s-u/REngine</url>
-    </scm>
+    <url>http://github.com/s-u/REngine</url>
 
     <dependencies>
         <dependency>
+            <groupId>pl.freeconstruction.rserve</groupId>
+            <artifactId>REngine-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>3.8.1</version>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.25</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.25</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tdomzal</groupId>
+            <artifactId>junit-docker-rule</artifactId>
+            <version>0.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>eu.rekawek.toxiproxy</groupId>
+            <artifactId>toxiproxy-java</artifactId>
+            <version>2.1.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -53,17 +54,15 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
-                <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
-                </configuration>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>failsafe</id>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
-
     <profiles>
         <profile>
             <id>release</id>
