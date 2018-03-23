@@ -15,7 +15,7 @@ import org.rosuda.rengine.REngineException;
 import org.rosuda.rengine.rserve.protocol.RPacket;
 import org.rosuda.rengine.rserve.protocol.RTalk;
 
-class RserveException extends REngineException {
+public class RserveException extends REngineException {
     private final int reqReturnCode;
 
     public RserveException(RConnection c, String msg) {

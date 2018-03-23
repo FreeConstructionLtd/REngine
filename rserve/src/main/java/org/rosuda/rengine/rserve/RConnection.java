@@ -87,7 +87,7 @@ public class RConnection extends REngine {
                 socket.close();
             }
             socket = null;
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new RserveException(this, "Cannot close previous connection: " + e.getMessage(), e);
         }
         if (session != null) {
@@ -102,8 +102,8 @@ public class RConnection extends REngine {
             // disable Nagle's algorithm since we really want immediate replies
             ss.setTcpNoDelay(true);
             initWithSocket(ss, session);
-        } catch (Exception sce) {
-            throw new RserveException(this, "Cannot connect: " + sce.getMessage(), sce);
+        } catch (IOException sce) {
+            throw new RserveException(this, "Cannot connect: " + sce.getMessage(), sce, RTalk.ERR_conn_broken);
         }
     }
 
@@ -124,7 +124,7 @@ public class RConnection extends REngine {
             }
             connected = false;
             socket = null;
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new RserveException(this, "Cannot close previous connection: " + e.getMessage(), e);
         }
         initWithSocket(sock, null);
@@ -135,7 +135,7 @@ public class RConnection extends REngine {
         try {
             is = socket.getInputStream();
             os = socket.getOutputStream();
-        } catch (Exception gse) {
+        } catch (IOException gse) {
             throw new RserveException(this, "Cannot get io stream: " + gse.getMessage(), gse);
         }
         rt = new RTalk(is, os);
@@ -144,7 +144,7 @@ public class RConnection extends REngine {
             int n;
             try {
                 n = is.read(IDs);
-            } catch (Exception sre) {
+            } catch (IOException sre) {
                 throw new RserveException(this, "Error while receiving data: " + sre.getMessage(), sre);
             }
             try {
@@ -189,7 +189,7 @@ public class RConnection extends REngine {
             } catch (RserveException innerX) {
                 try {
                     socket.close();
-                } catch (Exception e) {
+                } catch (IOException e) {
                     throw new RserveException(this, "Cannot close socket", e);
                 }
                 is = null;
@@ -200,7 +200,7 @@ public class RConnection extends REngine {
         } else { // we have a session to take care of
             try {
                 os.write(session.key, 0, 32);
-            } catch (Exception sre) {
+            } catch (IOException sre) {
                 throw new RserveException(this, "Error while sending session key: " + sre.getMessage(), sre);
             }
             rsrvVersion = session.rsrvVersion;
